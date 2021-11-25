@@ -49,7 +49,6 @@ class QueryModel(models.Model):
 
     beam = models.ForeignKey(BeamModel, on_delete=models.CASCADE, related_name='queries')
 
-
 class UnitOptionsModel(models.Model):
     units = models.CharField(max_length=64, default='SI')
     length = models.CharField(max_length=64, default = 'm')

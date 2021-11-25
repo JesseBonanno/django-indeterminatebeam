@@ -1,0 +1,11 @@
+h1 {
+    text-align: center;
+    color: rgb(25, 25, 112);
+    padding: 40px 0px 0px;
+}
+
+.col-5 {
+    margin:10px;
+    padding:10px;
+    background-color: orange;
+}

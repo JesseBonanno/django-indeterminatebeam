@@ -1,15 +1,33 @@
 {% extends "beam/layout.html" %}
+{% load static %}
 
 {% block head %}
   <title>Indeterminate Beam</title>
+  <link rel='stylesheet' href="{% static 'beam/styles.css' %}">
 {% endblock %}
 
 
 {% block body %}
   <h1>Indeterminate Beam</h1>
-
   <!-- TO DO: Maybe can reflect on the layout of the existing app-->
+  <!-- Alert is a to do item -->
+  <div class='container'>
+    <div class='row'>
 
+      <!-- Left column -->
+      <div class="col" id='left-column'>
+        {{plot_ext|safe}}
+        <!-- input tabs -->
+        
+      </div>
+
+      <!-- Right Column -->
+      <div class="col" id='right-column'>
+        {{plot_int|safe}}
+      </div>
+
+    </div>
+  </div>
 
 
 {% endblock %}
