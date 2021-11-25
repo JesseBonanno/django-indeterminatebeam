@@ -34,7 +34,7 @@ class PointTorqueModel(models.Model):
     coordinate = models.FloatField(default=0)
     torque = models.FloatField(default=0)
 
-    beam = models.ForeignKey(BeamModel, on_delete=models.CASCADE, related_name='point_loads')
+    beam = models.ForeignKey(BeamModel, on_delete=models.CASCADE, related_name='point_torques')
 
 class DistributedLoadModel(models.Model):
     start_coordinate = models.FloatField(default=0)
