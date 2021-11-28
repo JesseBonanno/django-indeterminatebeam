@@ -2,9 +2,9 @@ from django.db import models
 
 # Create your models here.
 class BeamModel(models.Model):
-    id = models.AutoField(primary_key=True)
+    # id = models.AutoField(primary_key=True)
 
-    length = models.FloatField(default=0)
+    length = models.FloatField(default=5.0)
     E = models.FloatField(default = 200*10**9)
     I = models.FloatField(default = 0.00000905)
     A = models.FloatField(default = 0.23)
@@ -51,7 +51,7 @@ class QueryModel(models.Model):
 
 class UnitOptionsModel(models.Model):
     units = models.CharField(max_length=64, default='SI')
-    length = models.CharField(max_length=64, default = 'm')
+    length= models.CharField(max_length=64, default = 'm')
     force = models.CharField(max_length=64, default = 'N')
     moment = models.CharField(max_length=64, default = 'N.m')
     distributed = models.CharField(max_length=64, default = 'N/m')

@@ -4,30 +4,104 @@
 {% block head %}
   <title>Indeterminate Beam</title>
   <link rel='stylesheet' href="{% static 'beam/styles.css' %}">
+  <script src="{% static 'beam/add_rows.js' %}"></script>
 {% endblock %}
 
 
 {% block body %}
-  <h1>Indeterminate Beam</h1>
+  
   <!-- TO DO: Maybe can reflect on the layout of the existing app-->
   <!-- Alert is a to do item -->
-  <div class='container'>
-    <div class='row'>
+  <div id="outer-flex-container"><!-- primary flex container -->
+    <h1>Indeterminate Beam</h1>
+  
+    <div id="inner-flex-container"><!-- flex item #2 -->
 
-      <!-- Left column -->
-      <div class="col" id='left-column'>
-        {{plot_ext|safe}}
-        <!-- input tabs -->
-        
+      <div id="mainpanel">
+
+          <div class = 'row'>
+
+                <form action="{% url 'index' %}" method = 'post' id='mainform'>
+
+                {% csrf_token %}
+                <input type='submit' class="btn btn-primary" value="Analyse">
+
+                <!--Main bearing capacity app navigation tab-->
+                <ul class="nav nav-tabs" id="myTab" role="tablist">
+                    {% for name, form, type in forms %}
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="{{name}}-tab" data-bs-toggle="tab" data-bs-target="#{{name}}" type="button" role="tab" aria-controls="{{name}}" aria-selected="true">{{name.capitalize}}</button>
+                        </li>
+                    {% endfor %}
+                </ul>
+    
+                <!-- Content for main bearing capacity app navigation tab-->
+                <br>
+                <div class="card tab-content" id="myTabContent">
+                    {% for name, forms, type in forms %}
+                        
+                        <div class="tab-pane fade" id={{name}} role="tabpanel" aria-labelledby="{{name}}-tab">
+                          {% csrf_token %}
+                          {% if type == 'formset' %}
+                              {{ forms.management_form }}
+                              {{ forms.non_form_errors.as_ul }}
+                                  <table id="formset-{{name}}" class="form" >
+                                  {% for form in forms.forms %}
+                                    {% if forloop.first %}
+                                    <thead><tr>
+                                      {% for field in form.visible_fields %}
+                                      <th>{{ field.label|capfirst }}</th>
+                                      {% endfor %}
+                                    </tr></thead>
+                                    {% endif %}
+                                    <tr class='formset-row-{{name}}' style='max-width: 150px;'>
+                                    {% for field in form.visible_fields %}
+                                      <td>
+                                      {% if forloop.first %}
+                                        {% for hidden in form.hidden_fields %}
+                                        {{ hidden }}
+                                        {% endfor %}
+                                      {% endif %}
+                                        {{ field.errors.as_ul }}
+                                        {{ field }}
+                                      </td>
+                                                                           
+                                    {% endfor %}
+                                    <td><button class="align-self-center btn btn-danger delete-{{name}}-form">X</button></td>
+                                    </tr>
+                                    <div class='end-row-{{name}}'></div>
+                                  {% endfor %}
+                                  </table>
+                                  
+                            <button id='add-{{name}}-form' class = 'btn btn-primary my-3'>Add another row</button>
+
+                          {% else %}
+                            
+                            {% for field in forms  %}
+                              <div class = '{{name}}-div'>
+                                  <div>{{ field.label_tag }}</div>
+                                  <div>{{ field }}</div>
+                                  <br>
+                              </div>
+                            {% endfor %}
+
+                          {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </form>
+        </div>
       </div>
 
-      <!-- Right Column -->
-      <div class="col" id='right-column'>
+      <div class ='card' id="aside">
+        {{plot_ext|safe}}
         {{plot_int|safe}}
       </div>
 
-    </div>
-  </div>
+      
+    </div><!-- end #inner-flex-container -->
+
+</div><!-- end #outer-flex-container -->
 
 
 {% endblock %}

@@ -45,4 +45,3 @@ class UnitOptionsForm(forms.ModelForm):
     class Meta:
         model = UnitOptionsModel
         fields = ('units', 'length', 'force','moment','distributed', 'stiffness', 'A','E','I','deflection')
-    
