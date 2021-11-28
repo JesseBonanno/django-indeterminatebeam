@@ -1,5 +1,0 @@
-1. create models
-2. check models using admin
-2. create forms
-3. create formsets
-4. 
