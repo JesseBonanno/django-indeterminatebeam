@@ -20,12 +20,13 @@
       <div id="mainpanel">
 
           <div class = 'row'>
-
+              
                 <form action="{% url 'index' %}" method = 'post' id='mainform'>
 
                 {% csrf_token %}
                 <input type='submit' class="btn btn-primary" value="Analyse">
-
+                <a class="btn btn-primary" href='{% url "reset" %}'>Clear Beam </a>
+                
                 <!--Main bearing capacity app navigation tab-->
                 <ul class="nav nav-tabs" id="myTab" role="tablist">
                     {% for name, form, type in forms %}

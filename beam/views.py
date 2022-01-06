@@ -1,6 +1,6 @@
 from sys import prefix
 from django.db.models import query
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from django.forms import modelformset_factory
 
@@ -45,15 +45,31 @@ def index(request):
 
 
     if request.method == 'GET':
-        beam_form = BeamForm(prefix='beam')
-        
-        support_formset = SupportFormSet(queryset=SupportModel.objects.none(), prefix='support')
-        pointload_formset = PointLoadFormSet(queryset=PointLoadModel.objects.none(), prefix = 'point_load')
-        pointtorque_formset = PointTorqueFormSet(queryset= PointTorqueModel.objects.none(), prefix = 'point_torque')
-        distributedload_formset = DistributedLoadFormSet(queryset = DistributedLoadModel.objects.none(), prefix='distributed_load')
-        query_formset = QueryFormSet(queryset = QueryModel.objects.none(), prefix='query')
+        # if forms have been saved initialise with previous data, otherwise reset.
+        # if clear form button has been called then also dont use previous and use default.
+        if request.session.get('forms'):
 
-        unitoptions_form = UnitOptionsForm(prefix = 'units')
+            previous_forms = request.session.get('forms')
+
+            beam_form = BeamForm(previous_forms, prefix='beam')
+        
+            support_formset = SupportFormSet(previous_forms, prefix='support')
+            pointload_formset = PointLoadFormSet(previous_forms, prefix='point_load')
+            pointtorque_formset = PointTorqueFormSet(previous_forms, prefix='point_torque')
+            distributedload_formset = DistributedLoadFormSet(previous_forms, prefix='distributed_load')
+            query_formset = QueryFormSet(previous_forms,prefix = 'query')
+
+            unitoptions_form = UnitOptionsForm(previous_forms, prefix='units')
+        else:
+            beam_form = BeamForm(prefix='beam')
+        
+            support_formset = SupportFormSet(queryset=SupportModel.objects.none(), prefix='support')
+            pointload_formset = PointLoadFormSet(queryset=PointLoadModel.objects.none(), prefix = 'point_load')
+            pointtorque_formset = PointTorqueFormSet(queryset= PointTorqueModel.objects.none(), prefix = 'point_torque')
+            distributedload_formset = DistributedLoadFormSet(queryset = DistributedLoadModel.objects.none(), prefix='distributed_load')
+            query_formset = QueryFormSet(queryset = QueryModel.objects.none(), prefix='query')
+
+            unitoptions_form = UnitOptionsForm(prefix = 'units')
 
 
         # TO DO -- properly implement the beam creation (more for post request i guess, but get may be important for when there is already data present)
@@ -61,8 +77,13 @@ def index(request):
         beam.add_supports(Support(0,(1,1,1)))
         beam.analyse()
 
-        plot_int = beam.plot_beam_internal().update_layout(width=900).to_html()
-        plot_ext = beam.plot_beam_external().update_layout(width=900).to_html()
+        # restore graphs from previous session if available otherwise generate new graph
+        if request.session.get('plot_int') and request.session.get('plot_ext'):
+            plot_int = request.session.get('plot_int')
+            plot_ext = request.session.get('plot_ext')
+        else:
+            plot_int = beam.plot_beam_internal().update_layout(width=900).to_html()
+            plot_ext = beam.plot_beam_external().update_layout(width=900).to_html()
 
         
         return render(request, 'beam/index.html', {
@@ -112,6 +133,8 @@ def index(request):
             valid *= a.is_valid()
         
         if valid:
+            request.session['forms']=request.POST
+
             beam = Beam(
                 span= beam_form.cleaned_data['length'],
                 E =  beam_form.cleaned_data['E'],
@@ -177,6 +200,9 @@ def index(request):
             plot_int = beam.plot_beam_internal().update_layout(width=900).to_html()
             plot_ext = beam.plot_beam_external().update_layout(width=900).to_html()
 
+            request.session['plot_int'] = plot_int
+            request.session['plot_ext'] = plot_ext
+
             return render(request, 'beam/index.html', {
                 'beam_form' : beam_form,            
                 'support_formset' : support_formset,
@@ -199,22 +225,11 @@ def index(request):
                 ]
             })
 
-    # elif request.method == 'POST':
-    #     pet_form = PetForm(request.POST)
-    #     formset = ImageFormSet(request.POST, request.FILES)
-
-    #     if pet_form.is_valid and formset.is_valid():
-    #         pet_obj = pet_form.save()
-
-    #         for form in formset.cleaned_data:
-    #             if form:
-    #                 image = form['image']
-    #                 Image.objects.create(image=image, pet=pet_obj)
-    #         return HttpResponseRedirect('/')
-    #     else:
-    #         print(pet_form.errors, formset.errors)
-
-
-
-
-    return render(request, 'beam/hello.html')
+def reset(request):
+    # remove all saved information to allow the form to reset to default parameters
+    request.session['forms']=[]
+    request.session['plot_int']=[]
+    request.session['plot_ext']=[]
+    # get request the main page, however now session information is set to none meaning
+    # that the default values are returned to the user.
+    return redirect('index')
