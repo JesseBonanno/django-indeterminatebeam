@@ -1,8 +1,18 @@
 from sys import prefix
+from django import forms
 from django.db.models import query
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from django.forms import modelformset_factory
+from django.views.generic import View
+import time
+
+import base64
+
+from plotly.io import to_image
+
+from .utils import render_to_pdf
+
 
 from indeterminatebeam import (
     Beam,
@@ -37,6 +47,7 @@ from .forms import (
 # Create your views here.
 
 def index(request):
+    # create formset
     SupportFormSet = modelformset_factory(SupportModel, form=SupportForm, extra=1) 
     PointLoadFormSet = modelformset_factory(PointLoadModel, form = PointLoadForm, extra = 1)
     PointTorqueFormSet = modelformset_factory(PointTorqueModel, form = PointTorqueForm, extra = 1)
@@ -64,6 +75,48 @@ def index(request):
             except:
                 return redirect('clear')
 
+            # if there is a download request in the url then generate report
+            # by using get request we get the last analysed result
+            # a better method would be to use the plotly html of figures and convert the html
+            # to pdf. Unfortunetly this method did not work. The analysis needs to run everytime
+            # because information can't be saved on the client side. Potentially it will be more efficient
+            # to save informatoin to the SQL database to reduce the need for running analyse which can often
+            # be an expensive process
+            if 'report' in request.GET.keys():
+
+                form_list = [
+                    beam_form,
+                    support_formset,
+                    pointload_formset,
+                    pointtorque_formset,
+                    distributedload_formset,
+                    query_formset,
+                    unitoptions_form,
+                ]
+
+                # check is valid
+                valid = True
+                for a in form_list:
+                    valid *= a.is_valid()
+
+                if valid:
+                    beam = create_beam(*form_list)
+
+                    pdf = render_to_pdf('beam/report.html', context_dict={
+                        'plot_ext': str(base64.b64encode(beam.plot_beam_external().update_layout(width=1000).to_image(format='png'))),
+                        'plot_int': str(base64.b64encode(beam.plot_beam_internal().update_layout(width=1000).to_image(format='png'))),
+                    })
+
+                    response = HttpResponse(pdf, content_type='application/pdf')
+
+                    if request.GET.get('report') == 'download':
+                        
+                        filename = 'beam_report.pdf'
+                        content = f"attachment; filename={filename}"
+                        response['Content-Disposition'] = content
+
+                    return response
+
         else:
             beam_form = BeamForm(prefix='beam')
         
@@ -75,8 +128,6 @@ def index(request):
 
             unitoptions_form = UnitOptionsForm(prefix = 'units')
 
-
-        # TO DO -- properly implement the beam creation (more for post request i guess, but get may be important for when there is already data present)
         beam = Beam()
         beam.add_supports(Support(0,(1,1,1)))
         beam.analyse()
@@ -88,6 +139,7 @@ def index(request):
         else:
             plot_int = beam.plot_beam_internal().update_layout(width=900).to_html()
             plot_ext = beam.plot_beam_external().update_layout(width=900).to_html()
+           
 
         
         return render(request, 'beam/index.html', {
@@ -113,6 +165,8 @@ def index(request):
         })
 
     elif request.method == 'POST':
+        # initialize form objects with POST information
+
         beam_form = BeamForm(request.POST, prefix='beam')
         
         support_formset = SupportFormSet(request.POST, prefix='support')
@@ -123,9 +177,7 @@ def index(request):
 
         unitoptions_form = UnitOptionsForm(request.POST, prefix='units')
 
-        # check is valid
-        valid = True
-        for a in [
+        form_list = [
             beam_form,
             support_formset,
             pointload_formset,
@@ -133,73 +185,19 @@ def index(request):
             distributedload_formset,
             query_formset,
             unitoptions_form,
-            ]:
+        ]
+
+        # check is valid
+        valid = True
+        for a in form_list:
             valid *= a.is_valid()
         
+        # if form is valid
         if valid:
+            # save session client side
             request.session['forms']=request.POST
 
-            beam = Beam(
-                span= beam_form.cleaned_data['length'],
-                E =  beam_form.cleaned_data['E'],
-                I =  beam_form.cleaned_data['I'],
-                A =  beam_form.cleaned_data['A'],
-            )
-
-            beam.update_units('length', unitoptions_form.cleaned_data['length'])
-            beam.update_units('force', unitoptions_form.cleaned_data['force'])
-            beam.update_units('moment', unitoptions_form.cleaned_data['moment'])
-            beam.update_units('distributed', unitoptions_form.cleaned_data['distributed'])
-            beam.update_units('stiffness', unitoptions_form.cleaned_data['stiffness'])
-            beam.update_units('A', unitoptions_form.cleaned_data['A'])
-            beam.update_units('E', unitoptions_form.cleaned_data['E'])
-            beam.update_units('I', unitoptions_form.cleaned_data['I'])
-            beam.update_units('deflection', unitoptions_form.cleaned_data['deflection'])
-
-            for support_form in support_formset.cleaned_data:
-                support_dict = {
-                    'Fixed':(1,1,1),
-                    'Roller':(0,1,0),
-                    'Pinned':(1,1,0),
-                }
-                if support_form:
-                    beam.add_supports(Support(support_form['coordinate'], support_dict[support_form['support']]))
-                else:
-                    beam.add_supports(Support(0,(1,1,1)))
-
-            for pointload_form in pointload_formset.cleaned_data:
-                if pointload_form:
-                    beam.add_loads(
-                        PointLoad(
-                            force = pointload_form['force'],
-                            coord = pointload_form['coordinate'],
-                            angle = pointload_form['angle'],
-                        )
-                    )
-            
-            for pointtorque_form in pointtorque_formset.cleaned_data:
-                if pointtorque_form:
-                    beam.add_loads(
-                        PointTorque(
-                            force = pointtorque_form['torque'],
-                            coord = pointtorque_form['coordinate'],
-                        )
-                    )
-
-            for distributedload_form in distributedload_formset.cleaned_data:
-                if distributedload_form:
-                    beam.add_loads(
-                        TrapezoidalLoadV(
-                            force = (distributedload_form['start_load'],distributedload_form['end_load']),
-                            span = (distributedload_form['start_coordinate'],distributedload_form['end_coordinate'])
-                        )
-                    )
-            
-            for query_form in query_formset.cleaned_data:
-                if query_form:
-                    beam.add_query_points(query_form['query'])
-
-            beam.analyse()
+            beam = create_beam(*form_list)
 
             plot_int = beam.plot_beam_internal().update_layout(width=900).to_html()
             plot_ext = beam.plot_beam_external().update_layout(width=900).to_html()
@@ -228,6 +226,9 @@ def index(request):
                     ('Units', unitoptions_form, 'form'),
                 ]
             })
+        # should really through up an error message to let the user know something is wrong without deleting
+        else:
+            return HttpResponse('Error with information')
 
 def reset(request):
     # remove all saved information to allow the form to reset to default parameters
@@ -237,3 +238,85 @@ def reset(request):
     # get request the main page, however now session information is set to none meaning
     # that the default values are returned to the user.
     return redirect('index')
+
+def create_beam(
+    beam_form,
+    support_formset,
+    pointload_formset,
+    pointtorque_formset,
+    distributedload_formset,
+    query_formset,
+    unitoptions_form
+    ):
+
+    # create beam object
+    beam = Beam(
+        span= beam_form.cleaned_data['length'],
+        E =  beam_form.cleaned_data['E'],
+        I =  beam_form.cleaned_data['I'],
+        A =  beam_form.cleaned_data['A'],
+    )
+
+    #set units
+    beam.update_units('length', unitoptions_form.cleaned_data['length'])
+    beam.update_units('force', unitoptions_form.cleaned_data['force'])
+    beam.update_units('moment', unitoptions_form.cleaned_data['moment'])
+    beam.update_units('distributed', unitoptions_form.cleaned_data['distributed'])
+    beam.update_units('stiffness', unitoptions_form.cleaned_data['stiffness'])
+    beam.update_units('A', unitoptions_form.cleaned_data['A'])
+    beam.update_units('E', unitoptions_form.cleaned_data['E'])
+    beam.update_units('I', unitoptions_form.cleaned_data['I'])
+    beam.update_units('deflection', unitoptions_form.cleaned_data['deflection'])
+
+    # add supports to beam
+    for support_form in support_formset.cleaned_data:
+        support_dict = {
+            'Fixed':(1,1,1),
+            'Roller':(0,1,0),
+            'Pinned':(1,1,0),
+        }
+        if support_form:
+            beam.add_supports(Support(support_form['coordinate'], support_dict[support_form['support']]))
+        else:
+            beam.add_supports(Support(0,(1,1,1)))
+
+    # add point loads to beam
+    for pointload_form in pointload_formset.cleaned_data:
+        if pointload_form:
+            beam.add_loads(
+                PointLoad(
+                    force = pointload_form['force'],
+                    coord = pointload_form['coordinate'],
+                    angle = pointload_form['angle'],
+                )
+            )
+    
+    # add point torques to beam
+    for pointtorque_form in pointtorque_formset.cleaned_data:
+        if pointtorque_form:
+            beam.add_loads(
+                PointTorque(
+                    force = pointtorque_form['torque'],
+                    coord = pointtorque_form['coordinate'],
+                )
+            )
+
+    # add distributed loads to beam
+    for distributedload_form in distributedload_formset.cleaned_data:
+        if distributedload_form:
+            beam.add_loads(
+                TrapezoidalLoadV(
+                    force = (distributedload_form['start_load'],distributedload_form['end_load']),
+                    span = (distributedload_form['start_coordinate'],distributedload_form['end_coordinate'])
+                )
+            )
+    
+    # add query to beam
+    for query_form in query_formset.cleaned_data:
+        if query_form:
+            beam.add_query_points(query_form['query'])
+
+    # analyse beam
+    beam.analyse()
+
+    return beam
