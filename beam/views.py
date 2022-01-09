@@ -50,16 +50,20 @@ def index(request):
         if request.session.get('forms'):
 
             previous_forms = request.session.get('forms')
+            # try load up the previous form information
+            # if there is an error it is probably due to a version change.
+            # clearing the beam will help rectify the issue.
+            try:
+                beam_form = BeamForm(previous_forms, prefix='beam')
+                support_formset = SupportFormSet(previous_forms, prefix='support')
+                pointload_formset = PointLoadFormSet(previous_forms, prefix='point_load')
+                pointtorque_formset = PointTorqueFormSet(previous_forms, prefix='point_torque')
+                distributedload_formset = DistributedLoadFormSet(previous_forms, prefix='distributed_load')
+                query_formset = QueryFormSet(previous_forms,prefix = 'query')
+                unitoptions_form = UnitOptionsForm(previous_forms, prefix='units')
+            except:
+                return redirect('clear')
 
-            beam_form = BeamForm(previous_forms, prefix='beam')
-        
-            support_formset = SupportFormSet(previous_forms, prefix='support')
-            pointload_formset = PointLoadFormSet(previous_forms, prefix='point_load')
-            pointtorque_formset = PointTorqueFormSet(previous_forms, prefix='point_torque')
-            distributedload_formset = DistributedLoadFormSet(previous_forms, prefix='distributed_load')
-            query_formset = QueryFormSet(previous_forms,prefix = 'query')
-
-            unitoptions_form = UnitOptionsForm(previous_forms, prefix='units')
         else:
             beam_form = BeamForm(prefix='beam')
         

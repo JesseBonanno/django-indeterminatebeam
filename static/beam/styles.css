@@ -39,3 +39,17 @@ h1 {
     #mainpanel { height: auto;  }
     #aside { height: auto;  }
 }
+
+.formset-row input {
+    height:30px;
+    width: 150px;
+}
+
+.formset-row select {
+    height:30px;
+    width: 150px;
+}
+
+label {
+    font-weight: bold;
+}

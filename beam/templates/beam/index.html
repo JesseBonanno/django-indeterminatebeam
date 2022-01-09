@@ -5,6 +5,7 @@
   <title>Indeterminate Beam</title>
   <link rel='stylesheet' href="{% static 'beam/styles.css' %}">
   <script src="{% static 'beam/add_rows.js' %}"></script>
+  <script src="{% static 'beam/select_tab.js' %}"></script>
 {% endblock %}
 
 
@@ -28,7 +29,7 @@
                 <a class="btn btn-primary" href='{% url "reset" %}'>Clear Beam </a>
                 
                 <!--Main bearing capacity app navigation tab-->
-                <ul class="nav nav-tabs" id="myTab" role="tablist">
+                <ul class="nav nav-tabs flex-nowrap" id="myTab" role="tablist">
                     {% for name, form, type in forms %}
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="{{name}}-tab" data-bs-toggle="tab" data-bs-target="#{{name}}" type="button" role="tab" aria-controls="{{name}}" aria-selected="true">{{name.capitalize}}</button>
@@ -55,7 +56,7 @@
                                       {% endfor %}
                                     </tr></thead>
                                     {% endif %}
-                                    <tr class='formset-row-{{name}}' style='max-width: 150px;'>
+                                    <tr class='formset-row-{{name}} formset-row' style='max-width: 150px;'>
                                     {% for field in form.visible_fields %}
                                       <td>
                                       {% if forloop.first %}
@@ -68,7 +69,7 @@
                                       </td>
                                                                            
                                     {% endfor %}
-                                    <td><button class="align-self-center btn btn-danger delete-{{name}}-form">X</button></td>
+                                    <td><button class="align-self-center btn btn-danger delete-{{name}}-form" style="padding:1px 8px">X</button></td>
                                     </tr>
                                     <div class='end-row-{{name}}'></div>
                                   {% endfor %}
