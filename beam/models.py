@@ -1,4 +1,20 @@
 from django.db import models
+from indeterminatebeam.units import IMPERIAL_UNITS, METRIC_UNITS, UNIT_KEYS, UNIT_VALUES, default_units
+
+
+def create_unit_field(unit='length', metric=True):
+    if metric:
+        choices = [(k,k) for k in METRIC_UNITS[unit].keys()]
+        default = default_units['metric'][unit]
+    else:
+        choices = [(k,k) for k in IMPERIAL_UNITS[unit].keys()]
+        default = default_units['imperial'][unit]
+
+    return models.CharField(
+        max_length=10,
+        choices=choices,
+        default=default,
+    )
 
 # Create your models here.
 class BeamModel(models.Model):
@@ -49,17 +65,41 @@ class QueryModel(models.Model):
 
     beam = models.ForeignKey(BeamModel, on_delete=models.CASCADE, related_name='queries')
 
+# add class for unit choice
+# seperate metric and imperial,
+# hide one or the other with js or whatever
+# 
+
 class UnitOptionsModel(models.Model):
-    units = models.CharField(max_length=64, default='SI')
-    length= models.CharField(max_length=64, default = 'm')
-    force = models.CharField(max_length=64, default = 'N')
-    moment = models.CharField(max_length=64, default = 'N.m')
-    distributed = models.CharField(max_length=64, default = 'N/m')
-    stiffness = models.CharField(max_length=64, default = 'N/m')
-    A = models.CharField(max_length=64, default='m2')
-    E = models.CharField(max_length=64, default = 'Pa')
-    I = models.CharField(max_length=64, default = 'm4')
-    deflection = models.CharField(max_length=64, default = 'm')
+
+    units = models.CharField(
+        max_length=64,
+        choices=(
+            ('metric','metric'),
+            ('imperial','imperial'),
+        ),
+        default='SI'
+    )
+
+    length_m = create_unit_field('length')
+    force_m = create_unit_field('force')
+    moment_m = create_unit_field('moment')
+    distributed_m = create_unit_field('distributed')
+    stiffness_m = create_unit_field('stiffness')
+    A_m = create_unit_field('A')
+    E_m = create_unit_field('E')
+    I_m = create_unit_field('I')
+    deflection_m = create_unit_field('deflection')
+
+    length_i = create_unit_field('length', metric=False)
+    force_i = create_unit_field('force', metric=False)
+    moment_i = create_unit_field('moment', metric=False)
+    distributed_i = create_unit_field('distributed', metric=False)
+    stiffness_i = create_unit_field('stiffness', metric=False)
+    A_i = create_unit_field('A', metric=False)
+    E_i = create_unit_field('E', metric=False)
+    I_i = create_unit_field('I', metric=False)
+    deflection_i = create_unit_field('deflection', metric=False)
 
     beam = models.OneToOneField(
         BeamModel,
@@ -67,7 +107,6 @@ class UnitOptionsModel(models.Model):
         primary_key=True,
         related_name='units'
     )
-
 
 
 

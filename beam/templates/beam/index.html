@@ -6,8 +6,8 @@
   <link rel='stylesheet' href="{% static 'beam/styles.css' %}">
   <script src="{% static 'beam/add_rows.js' %}"></script>
   <script src="{% static 'beam/select_tab.js' %}"></script>
+  <script src="{% static 'beam/units.js' %}"></script>
 {% endblock %}
-
 
 {% block body %}
   
@@ -54,7 +54,7 @@
                                     {% if forloop.first %}
                                     <thead><tr>
                                       {% for field in form.visible_fields %}
-                                      <th>{{ field.label|capfirst }}</th>
+                                          <th class="{{field.label}}">{{ field.label|capfirst }} ()</th>
                                       {% endfor %}
                                     </tr></thead>
                                     {% endif %}
@@ -83,8 +83,8 @@
                             
                             {% for field in forms  %}
                               <div class = '{{name}}-div'>
-                                  <div>{{ field.label_tag }}</div>
-                                  <div>{{ field }}</div>
+                                  <div class = "align-self-center col-3 col-form-label" style='display:inline-block' id='{{name}}-{{field.label}}'>{{ field.label_tag }}</div>
+                                  <div class = "col-8" style='display:inline-block'>{{ field }}</div>
                                   <br>
                               </div>
                             {% endfor %}

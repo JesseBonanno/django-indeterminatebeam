@@ -43,5 +43,8 @@ class QueryForm(forms.ModelForm):
 # a part of the Beam model, and then split into two forms
 class UnitOptionsForm(forms.ModelForm):
     class Meta:
+        units = ('length', 'force','moment','distributed', 'stiffness', 'A','E','I','deflection')
+        fields = ['units']+[f'{a}_m' for a in units] + [f'{a}_i' for a in units]
+        labels = {a:a.split('_')[0].capitalize() for a in fields}
+        # widgets = {field: forms.RadioSelect() for field in fields}
         model = UnitOptionsModel
-        fields = ('units', 'length', 'force','moment','distributed', 'stiffness', 'A','E','I','deflection')

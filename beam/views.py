@@ -4,12 +4,8 @@ from django.db.models import query
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from django.forms import modelformset_factory
-from django.views.generic import View
-import time
 
 import base64
-
-from plotly.io import to_image
 
 from .utils import render_to_pdf
 
@@ -65,7 +61,7 @@ def index(request):
             # if there is an error it is probably due to a version change.
             # clearing the beam will help rectify the issue.
             try:
-                beam_form = BeamForm(previous_forms, prefix='beam')
+                beam_form = BeamForm(previous_forms, prefix='beam', label_suffix=' ()')
                 support_formset = SupportFormSet(previous_forms, prefix='support')
                 pointload_formset = PointLoadFormSet(previous_forms, prefix='point_load')
                 pointtorque_formset = PointTorqueFormSet(previous_forms, prefix='point_torque')
@@ -73,7 +69,7 @@ def index(request):
                 query_formset = QueryFormSet(previous_forms,prefix = 'query')
                 unitoptions_form = UnitOptionsForm(previous_forms, prefix='units')
             except:
-                return redirect('clear')
+                return redirect('reset')
 
             # if there is a download request in the url then generate report
             # by using get request we get the last analysed result
@@ -118,7 +114,7 @@ def index(request):
                     return response
 
         else:
-            beam_form = BeamForm(prefix='beam')
+            beam_form = BeamForm(prefix='beam', label_suffix=' ()')
         
             support_formset = SupportFormSet(queryset=SupportModel.objects.none(), prefix='support')
             pointload_formset = PointLoadFormSet(queryset=PointLoadModel.objects.none(), prefix = 'point_load')
@@ -161,13 +157,13 @@ def index(request):
                 ('Distributed-Loads', distributedload_formset, 'formset'),
                 ('Query', query_formset, 'formset'),
                 ('Units', unitoptions_form, 'form'),
-            ]
+            ],
         })
 
     elif request.method == 'POST':
         # initialize form objects with POST information
 
-        beam_form = BeamForm(request.POST, prefix='beam')
+        beam_form = BeamForm(request.POST, prefix='beam', label_suffix=' ()')
         
         support_formset = SupportFormSet(request.POST, prefix='support')
         pointload_formset = PointLoadFormSet(request.POST, prefix='point_load')
@@ -224,7 +220,7 @@ def index(request):
                     ('Distributed-Loads', distributedload_formset, 'formset'),
                     ('Query', query_formset, 'formset'),
                     ('Units', unitoptions_form, 'form'),
-                ]
+                ],
             })
         # should really through up an error message to let the user know something is wrong without deleting
         else:
@@ -257,16 +253,22 @@ def create_beam(
         A =  beam_form.cleaned_data['A'],
     )
 
+    # get imperial or metric based on first part of form
+    if unitoptions_form.cleaned_data['units'] == 'metric':
+        suffix = 'm'
+    else:
+        suffix = 'i'
+
     #set units
-    beam.update_units('length', unitoptions_form.cleaned_data['length'])
-    beam.update_units('force', unitoptions_form.cleaned_data['force'])
-    beam.update_units('moment', unitoptions_form.cleaned_data['moment'])
-    beam.update_units('distributed', unitoptions_form.cleaned_data['distributed'])
-    beam.update_units('stiffness', unitoptions_form.cleaned_data['stiffness'])
-    beam.update_units('A', unitoptions_form.cleaned_data['A'])
-    beam.update_units('E', unitoptions_form.cleaned_data['E'])
-    beam.update_units('I', unitoptions_form.cleaned_data['I'])
-    beam.update_units('deflection', unitoptions_form.cleaned_data['deflection'])
+    beam.update_units('length', unitoptions_form.cleaned_data[f'length_{suffix}'])
+    beam.update_units('force', unitoptions_form.cleaned_data[f'force_{suffix}'])
+    beam.update_units('moment', unitoptions_form.cleaned_data[f'moment_{suffix}'])
+    beam.update_units('distributed', unitoptions_form.cleaned_data[f'distributed_{suffix}'])
+    beam.update_units('stiffness', unitoptions_form.cleaned_data[f'stiffness_{suffix}'])
+    beam.update_units('A', unitoptions_form.cleaned_data[f'A_{suffix}'])
+    beam.update_units('E', unitoptions_form.cleaned_data[f'E_{suffix}'])
+    beam.update_units('I', unitoptions_form.cleaned_data[f'I_{suffix}'])
+    beam.update_units('deflection', unitoptions_form.cleaned_data[f'deflection_{suffix}'])
 
     # add supports to beam
     for support_form in support_formset.cleaned_data:
