@@ -27,8 +27,9 @@
                 {% csrf_token %}
                 <input type='submit' class="btn btn-primary" value="Analyse">
                 <a class="btn btn-primary" href='{% url "reset" %}'>Clear Beam </a>
-                <a class="btn btn-primary" href='./?report'>View PDF report</a>
-                <a class="btn btn-primary" href='./?report=download'>Download PDF report</a>
+                <a class="btn btn-primary" href='report'>View PDF report</a>
+                <a class="btn btn-primary" href='report?download=pdf'>Download PDF report</a>
+                <a class="btn btn-primary" href='report?download=html'>Download HTML report</a>
                 
                 <!--Main bearing capacity app navigation tab-->
                 <ul class="nav nav-tabs flex-nowrap" id="myTab" role="tablist">

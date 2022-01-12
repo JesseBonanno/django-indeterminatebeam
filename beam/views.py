@@ -1,14 +1,12 @@
-from sys import prefix
-from django import forms
-from django.db.models import query
+from django.http.response import Http404
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from django.forms import modelformset_factory
 
 import base64
+from plotly.io import to_json, from_json
 
 from .utils import render_to_pdf
-
 
 from indeterminatebeam import (
     Beam,
@@ -17,8 +15,6 @@ from indeterminatebeam import (
     PointTorque,
     TrapezoidalLoadV,
     )
-
-from numpy import empty
 
 from .models import (
     BeamModel,
@@ -41,6 +37,46 @@ from .forms import (
 )
 
 # Create your views here.
+def report(request):
+    # if session
+    if request.session.get('plot_int_json') and request.session.get('plot_ext_json'):
+            
+            plot_ext = from_json(request.session.get('plot_ext_json'))
+            plot_ext_image = plot_ext.to_image(format='png')
+
+            plot_int = from_json(request.session.get('plot_int_json'))
+            plot_int_image = plot_int.to_image(format='png')
+
+            pdf = render_to_pdf('beam/report.html', context_dict={
+                'plot_ext': str(base64.b64encode(plot_ext_image)),
+                'plot_int': str(base64.b64encode(plot_int_image)),
+            })
+
+            response = HttpResponse(pdf, content_type='application/pdf')
+
+            if request.GET.get('download') == 'pdf':
+
+                filename = 'beam_report.pdf'
+                content = f"attachment; filename={filename}"
+                response['Content-Disposition'] = content
+
+            elif request.GET.get('download') == 'html':
+                filename = 'beam_report.html'
+
+                html = render(request, 'beam/report_html.html', {
+                    'plot_ext': plot_ext.to_html(),
+                    'plot_int': plot_int.to_html(),
+                })
+
+                response = HttpResponse(html, content_type='text/html')
+                content = f"attachment; filename={filename}"
+                response['Content-Disposition'] = content
+
+            return response
+
+    else:
+        return Http404('Could not generate a report')
+
 
 def index(request):
     # create formset
@@ -71,48 +107,6 @@ def index(request):
             except:
                 return redirect('reset')
 
-            # if there is a download request in the url then generate report
-            # by using get request we get the last analysed result
-            # a better method would be to use the plotly html of figures and convert the html
-            # to pdf. Unfortunetly this method did not work. The analysis needs to run everytime
-            # because information can't be saved on the client side. Potentially it will be more efficient
-            # to save informatoin to the SQL database to reduce the need for running analyse which can often
-            # be an expensive process
-            if 'report' in request.GET.keys():
-
-                form_list = [
-                    beam_form,
-                    support_formset,
-                    pointload_formset,
-                    pointtorque_formset,
-                    distributedload_formset,
-                    query_formset,
-                    unitoptions_form,
-                ]
-
-                # check is valid
-                valid = True
-                for a in form_list:
-                    valid *= a.is_valid()
-
-                if valid:
-                    beam = create_beam(*form_list)
-
-                    pdf = render_to_pdf('beam/report.html', context_dict={
-                        'plot_ext': str(base64.b64encode(beam.plot_beam_external().update_layout(width=1000).to_image(format='png'))),
-                        'plot_int': str(base64.b64encode(beam.plot_beam_internal().update_layout(width=1000).to_image(format='png'))),
-                    })
-
-                    response = HttpResponse(pdf, content_type='application/pdf')
-
-                    if request.GET.get('report') == 'download':
-                        
-                        filename = 'beam_report.pdf'
-                        content = f"attachment; filename={filename}"
-                        response['Content-Disposition'] = content
-
-                    return response
-
         else:
             beam_form = BeamForm(prefix='beam', label_suffix=' ()')
         
@@ -135,9 +129,7 @@ def index(request):
         else:
             plot_int = beam.plot_beam_internal().update_layout(width=900).to_html()
             plot_ext = beam.plot_beam_external().update_layout(width=900).to_html()
-           
 
-        
         return render(request, 'beam/index.html', {
             'beam_form' : beam_form,            
             'support_formset' : support_formset,
@@ -201,6 +193,9 @@ def index(request):
             request.session['plot_int'] = plot_int
             request.session['plot_ext'] = plot_ext
 
+            request.session['plot_int_json'] = beam.plot_beam_internal().update_layout(width=900).to_json()
+            request.session['plot_ext_json'] = beam.plot_beam_external().update_layout(width=900).to_json()
+
             return render(request, 'beam/index.html', {
                 'beam_form' : beam_form,            
                 'support_formset' : support_formset,
@@ -231,6 +226,8 @@ def reset(request):
     request.session['forms']=[]
     request.session['plot_int']=[]
     request.session['plot_ext']=[]
+    request.session['plot_ext_json']=[]
+    request.session['plot_int_json']=[]
     # get request the main page, however now session information is set to none meaning
     # that the default values are returned to the user.
     return redirect('index')
