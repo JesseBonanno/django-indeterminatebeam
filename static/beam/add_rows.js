@@ -138,35 +138,65 @@ document.addEventListener("DOMContentLoaded", () => {
         var count = 0;
         const supportFormRegex = RegExp(`support-(\\d){1}-`, 'g');
         for (let form of supportForm) {
-            form.innerHTML = form.innerHTML.replace(supportFormRegex, `support-${count++}-`)
+            for (let cell of form.children) {
+                for (let input of cell.children){
+                    input.name = input.name.replace(supportFormRegex, `support-${count}-`);
+                    input.id = input.id.replace(supportFormRegex, `support-${count}-`);
+                }
+            }
+            count++;
         }
         
         //point loads
         var count = 0;
         const pointLoadFormRegex = RegExp(`point_load-(\\d){1}-`, 'g');
         for (let form of pointLoadForm) {
-            form.innerHTML = form.innerHTML.replace(pointLoadFormRegex, `point_load-${count++}-`)
+            for (let cell of form.children) {
+                for (let input of cell.children){
+                    input.name = input.name.replace(pointLoadFormRegex, `point_load-${count}-`);
+                    input.id = input.id.replace(pointLoadFormRegex, `point_load-${count}-`);
+                }
+            }
+            count++;
         }
 
         //point torques
         var count = 0;
         const pointTorqueFormRegex = RegExp(`point_torque-(\\d){1}-`, 'g');
         for (let form of pointTorqueForm) {
-            form.innerHTML = form.innerHTML.replace(pointTorqueFormRegex, `point_torque-${count++}-`)
+            for (let cell of form.children) {
+                for (let input of cell.children){
+                    input.name = input.name.replace(pointTorqueFormRegex, `point_torque-${count}-`);
+                    input.id = input.id.replace(pointTorqueFormRegex, `point_torque-${count}-`);
+                }
+            }
+            count++;
         }
 
         // distributed loads
         var count = 0;
         const distributedLoadFormRegex = RegExp(`distributed_load-(\\d){1}-`, 'g');
         for (let form of distributedLoadForm) {
-            form.innerHTML = form.innerHTML.replace(distributedLoadFormRegex, `distributed_load-${count++}-`)
+            for (let cell of form.children) {
+                for (let input of cell.children){
+                    input.name = input.name.replace(distributedLoadFormRegex, `distributed_load-${count}-`);
+                    input.id = input.id.replace(distributedLoadFormRegex, `distributed_load-${count}-`);
+                }
+            }
+            count++;
         }
 
         //query
         var count = 0;
         const queryFormRegex = RegExp(`query-(\\d){1}-`, 'g');
         for (let form of queryForm) {
-            form.innerHTML = form.innerHTML.replace(formRegex, `query-${count++}-`)
+            for (let cell of form.children) {
+                for (let input of cell.children){
+                    input.name = input.name.replace(queryFormRegex, `query-${count}-`);
+                    input.id = input.id.replace(queryFormRegex, `query-${count}-`);
+                }
+            }
+            count++;
         }
     };
 
